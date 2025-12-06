@@ -90,6 +90,8 @@ class HillClimbing:
                         print(f"  Iteration {iteration}: Khoảng cách = {current_distance:.2f}")
                 else:
                     # Không cải thiện được nữa -> đạt local optimum
+                    # Ghi điểm cuối cùng trước khi break
+                    local_history.append((iteration, current_distance))
                     break
             
             if verbose:
@@ -114,16 +116,21 @@ class HillClimbing:
         self.best_distance = overall_best_distance
         self.execution_time = time.time() - start_time
         
+        # Tính fitness của nghiệm tốt nhất
+        best_fitness = self.tsp.calculate_fitness(self.best_route) if self.best_route else 0.0
+        
         if verbose:
             print("=" * 60)
             print(f"KẾT QUẢ CUỐI CÙNG")
             print(f"Khoảng cách tốt nhất: {self.best_distance:.2f}")
+            print(f"Fitness tốt nhất: {best_fitness:.6f}")
             print(f"Thời gian thực thi: {self.execution_time:.3f} giây")
             print("=" * 60)
         
         return {
             'tour': self.best_route,
             'distance': self.best_distance,
+            'fitness': best_fitness,
             'time': self.execution_time,
             'iterations': history_counter,
             'restarts': self.max_restarts,

@@ -15,6 +15,7 @@ from algorithms.hill_climbing import HillClimbing
 from algorithms.ant_colony import AntColonyOptimization
 from utils.tsp_problem import TSProblem
 from config import HILL_CLIMBING_CONFIG, ACO_CONFIG
+from comparison import AlgorithmComparison
 import numpy as np
 
 
@@ -117,7 +118,7 @@ class MainWindow(QMainWindow):
         hc_iter_layout = QHBoxLayout()
         hc_iter_layout.addWidget(QLabel('Số lần lặp:'))
         self.hc_iterations = QSpinBox()
-        self.hc_iterations.setRange(100, 50000)
+        self.hc_iterations.setRange(1, 50000)
         self.hc_iterations.setValue(HILL_CLIMBING_CONFIG['max_iterations'])
         hc_iter_layout.addWidget(self.hc_iterations)
         hc_layout.addLayout(hc_iter_layout)
@@ -144,7 +145,7 @@ class MainWindow(QMainWindow):
         aco_ants_layout = QHBoxLayout()
         aco_ants_layout.addWidget(QLabel('Số kiến:'))
         self.aco_ants = QSpinBox()
-        self.aco_ants.setRange(10, 200)
+        self.aco_ants.setRange(1, 200)
         self.aco_ants.setValue(ACO_CONFIG['num_ants'])
         aco_ants_layout.addWidget(self.aco_ants)
         aco_layout.addLayout(aco_ants_layout)
@@ -152,7 +153,7 @@ class MainWindow(QMainWindow):
         aco_iter_layout = QHBoxLayout()
         aco_iter_layout.addWidget(QLabel('Số thế hệ:'))
         self.aco_iterations = QSpinBox()
-        self.aco_iterations.setRange(10, 500)
+        self.aco_iterations.setRange(1, 500)
         self.aco_iterations.setValue(ACO_CONFIG['num_iterations'])
         aco_iter_layout.addWidget(self.aco_iterations)
         aco_layout.addLayout(aco_iter_layout)
@@ -412,6 +413,7 @@ class MainWindow(QMainWindow):
         # Hiển thị kết quả
         self.result_text.append(f'\nKết quả {algorithm}:')
         self.result_text.append(f'  Khoảng cách: {result["distance"]:.2f}')
+        self.result_text.append(f'  Fitness: {result.get("fitness", 0):.6f}')
         self.result_text.append(f'  Thời gian: {result["time"]:.3f} giây')
         
         # Vẽ hành trình
@@ -426,52 +428,62 @@ class MainWindow(QMainWindow):
         self.enable_buttons()
     
     def compare_algorithms(self):
-        """So sánh cả hai thuật toán"""
+        """So sánh cả hai thuật toán sử dụng AlgorithmComparison"""
         if self.tsp_problem is None:
             QMessageBox.warning(self, 'Lỗi', 'Chưa có dữ liệu thành phố!')
             return
         
         self.result_text.append('\n=== SO SÁNH CẢ HAI THUẬT TOÁN ===')
         
-        # Chạy Hill Climbing
-        self.result_text.append('Đang chạy Hill Climbing...')
-        hc = HillClimbing(
-            self.tsp_problem,
-            max_iterations=self.hc_iterations.value(),
-            max_restarts=self.hc_restart.value()
-        )
-        hc_result = hc.solve(verbose=False)
-        self.results['Hill Climbing'] = hc_result
+        # Tạo comparison object
+        comparison = AlgorithmComparison(self.tsp_problem)
         
-        # Chạy ACO
+        # Cấu hình
+        hc_config = {
+            'max_iterations': self.hc_iterations.value(),
+            'max_restarts': self.hc_restart.value()
+        }
+        
+        aco_config = {
+            'num_ants': self.aco_ants.value(),
+            'num_iterations': self.aco_iterations.value(),
+            'alpha': self.aco_alpha.value(),
+            'beta': self.aco_beta.value(),
+            'evaporation': self.aco_evaporation.value()
+        }
+        
+        # Chạy so sánh (không verbose để tránh spam console)
+        self.result_text.append('Đang chạy Hill Climbing...')
+        comparison.run_hill_climbing(**hc_config, verbose=False)
+        
         self.result_text.append('Đang chạy ACO...')
-        aco = AntColonyOptimization(
-            self.tsp_problem,
-            num_ants=self.aco_ants.value(),
-            num_iterations=self.aco_iterations.value(),
-            alpha=self.aco_alpha.value(),
-            beta=self.aco_beta.value(),
-            evaporation=self.aco_evaporation.value()
+        comparison.run_aco(**aco_config, verbose=False)
+        
+        # Lưu kết quả
+        self.results = comparison.results
+        
+        # Phân tích
+        analysis = comparison.analyze_results(
+            comparison.results['Hill Climbing'],
+            comparison.results['ACO']
         )
-        aco_result = aco.solve(verbose=False)
-        self.results['ACO'] = aco_result
         
         # Hiển thị kết quả so sánh
         self.result_text.append('\n--- KẾT QUẢ SO SÁNH ---')
         self.result_text.append(f'Hill Climbing:')
-        self.result_text.append(f'  Khoảng cách: {hc_result["distance"]:.2f}')
-        self.result_text.append(f'  Thời gian: {hc_result["time"]:.3f} giây')
+        self.result_text.append(f'  Khoảng cách: {analysis["hill_climbing"]["distance"]:.2f}')
+        self.result_text.append(f'  Fitness: {analysis["hill_climbing"]["fitness"]:.6f}')
+        self.result_text.append(f'  Thời gian: {analysis["hill_climbing"]["time"]:.3f} giây')
         self.result_text.append(f'\nACO:')
-        self.result_text.append(f'  Khoảng cách: {aco_result["distance"]:.2f}')
-        self.result_text.append(f'  Thời gian: {aco_result["time"]:.3f} giây')
+        self.result_text.append(f'  Khoảng cách: {analysis["aco"]["distance"]:.2f}')
+        self.result_text.append(f'  Fitness: {analysis["aco"]["fitness"]:.6f}')
+        self.result_text.append(f'  Thời gian: {analysis["aco"]["time"]:.3f} giây')
         
-        # Xác định thuật toán tốt hơn
-        if hc_result["distance"] < aco_result["distance"]:
-            self.result_text.append(f'\n✓ Hill Climbing tốt hơn (ngắn hơn {aco_result["distance"] - hc_result["distance"]:.2f})')
-        elif aco_result["distance"] < hc_result["distance"]:
-            self.result_text.append(f'\n✓ ACO tốt hơn (ngắn hơn {hc_result["distance"] - aco_result["distance"]:.2f})')
-        else:
-            self.result_text.append('\n✓ Cả hai cho kết quả tương đương')
+        # Hiển thị phân tích
+        self.result_text.append('\n--- PHÂN TÍCH ---')
+        self.result_text.append(f'🏆 Chất lượng nghiệm: {analysis["analysis"]["distance_message"]}')
+        self.result_text.append(f'⚡ Tốc độ thực thi: {analysis["analysis"]["time_message"]}')
+        self.result_text.append(f'✨ Tổng kết: {analysis["analysis"]["overall_winner"]} thắng!')
         
         # Vẽ biểu đồ so sánh
         self.plot_comparison()
@@ -483,27 +495,38 @@ class MainWindow(QMainWindow):
         
         self.figure_comparison.clear()
         
-        # Subplot 1: Distance comparison
-        ax1 = self.figure_comparison.add_subplot(121)
         algorithms = ['Hill Climbing', 'ACO']
+        colors = ['#3498db', '#2ecc71']
+        
+        # Subplot 1: Distance comparison
+        ax1 = self.figure_comparison.add_subplot(131)
         distances = [self.results['Hill Climbing']['distance'], 
                     self.results['ACO']['distance']]
-        colors = ['blue', 'green']
         
         ax1.bar(algorithms, distances, color=colors, alpha=0.7)
         ax1.set_ylabel('Khoảng cách')
         ax1.set_title('So sánh khoảng cách')
         ax1.grid(True, alpha=0.3, axis='y')
         
-        # Subplot 2: Time comparison
-        ax2 = self.figure_comparison.add_subplot(122)
+        # Subplot 2: Fitness comparison
+        ax2 = self.figure_comparison.add_subplot(132)
+        fitnesses = [self.results['Hill Climbing'].get('fitness', 0), 
+                    self.results['ACO'].get('fitness', 0)]
+        
+        ax2.bar(algorithms, fitnesses, color=colors, alpha=0.7)
+        ax2.set_ylabel('Fitness')
+        ax2.set_title('So sánh Fitness')
+        ax2.grid(True, alpha=0.3, axis='y')
+        
+        # Subplot 3: Time comparison
+        ax3 = self.figure_comparison.add_subplot(133)
         times = [self.results['Hill Climbing']['time'], 
                 self.results['ACO']['time']]
         
-        ax2.bar(algorithms, times, color=colors, alpha=0.7)
-        ax2.set_ylabel('Thời gian (giây)')
-        ax2.set_title('So sánh thời gian')
-        ax2.grid(True, alpha=0.3, axis='y')
+        ax3.bar(algorithms, times, color=colors, alpha=0.7)
+        ax3.set_ylabel('Thời gian (giây)')
+        ax3.set_title('So sánh thời gian')
+        ax3.grid(True, alpha=0.3, axis='y')
         
         self.figure_comparison.tight_layout()
         self.canvas_comparison.draw()

@@ -24,14 +24,20 @@ TSP_Project/
 │
 ├── utils/               # Module tiện ích
 │   ├── __init__.py
+│   ├── tsp_problem.py   # Class TSProblem
 │   └── tsp_utils.py     # Các hàm tính toán
 │
 ├── data/                # Dữ liệu mẫu
 │   └── sample_cities.json
 │
+├── comparison.py        # Module so sánh thuật toán (NEW!)
+├── demo_comparison.py   # Demo sử dụng comparison.py (NEW!)
 ├── config.py            # Cấu hình
-├── main.py              # Entry point
+├── main.py              # Entry point cho GUI
 ├── requirements.txt     # Dependencies
+├── BAO_CAO_DO_AN.md     # Báo cáo đồ án đầy đủ
+├── BAO_CAO_THUAT_TOAN.md # Báo cáo phần thuật toán chi tiết
+├── COMPARISON_README.md # Hướng dẫn module comparison
 └── README.md            # File này
 ```
 
@@ -47,9 +53,24 @@ pip install -r requirements.txt
 
 ## Chạy chương trình
 
+### GUI (Giao diện đồ họa)
 ```bash
 python main.py
 ```
+
+### Command Line (So sánh thuật toán)
+```bash
+# So sánh cơ bản với 20 thành phố
+python comparison.py -n 20
+
+# So sánh với tham số tùy chỉnh
+python comparison.py -n 30 --hc_iterations 5000 --aco_ants 30 --save
+
+# Chạy demo tương tác
+python demo_comparison.py
+```
+
+Xem chi tiết: [COMPARISON_README.md](COMPARISON_README.md)
 
 ## Hướng dẫn sử dụng
 
@@ -109,10 +130,47 @@ Ví dụ: `data/sample_cities.json`
 
 ## Tính năng
 
--Sinh ngẫu nhiên thành phố  
--Tải/Lưu dữ liệu từ file JSON  
--Thuật toán Hill Climbing với Random Restart  
--Thuật toán Ant Colony Optimization  
+### GUI
+- ✅ Sinh ngẫu nhiên thành phố  
+- ✅ Tải/Lưu dữ liệu từ file JSON  
+- ✅ Thuật toán Hill Climbing với Random Restart  
+- ✅ Thuật toán Ant Colony Optimization
+- ✅ Visualization hành trình và đồ thị hội tụ
+- ✅ So sánh trực quan giữa hai thuật toán
+
+### Command Line (comparison.py)
+- ✅ So sánh tự động giữa Hill Climbing và ACO
+- ✅ Phân tích chi tiết kết quả
+- ✅ Vẽ biểu đồ so sánh (distance, time, fitness, convergence)
+- ✅ Vẽ tours của cả hai thuật toán
+- ✅ Lưu kết quả ra JSON
+- ✅ Tùy chỉnh đầy đủ tham số
+- ✅ Chạy độc lập không cần GUI
+
+## Module mới: comparison.py
+
+Module `comparison.py` cho phép so sánh hiệu năng giữa Hill Climbing và ACO một cách tự động và chi tiết.
+
+### Sử dụng trong code:
+```python
+from comparison import AlgorithmComparison
+from utils.tsp_problem import TSProblem
+
+# Tạo problem
+tsp = TSProblem(num_cities=20)
+
+# So sánh
+comparison = AlgorithmComparison(tsp)
+result = comparison.compare(verbose=True)
+
+# Vẽ biểu đồ
+comparison.plot_comparison(save_path='comparison.png')
+comparison.plot_tours(save_path='tours.png')
+
+# Lưu kết quả
+comparison.save_results('results.json')
+```
+
 -Hiển thị trực quan hành trình  
 -Đồ thị hội tụ  
 -So sánh hiệu năng hai thuật toán  

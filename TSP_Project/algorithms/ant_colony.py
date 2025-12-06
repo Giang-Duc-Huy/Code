@@ -5,18 +5,26 @@ import numpy as np
 
 
 class Ant:
+    """Lớp đại diện cho một con kiến trong ACO"""
     
     def __init__(self, num_cities):
-     
+        """
+        Khởi tạo con kiến
+        
+        Args:
+            num_cities: Số lượng thành phố
+        """
         self.num_cities = num_cities
         self.tour = []  # Hành trình của kiến
         self.distance = float('inf')  # Tổng khoảng cách
+        self.fitness = 0.0  # Fitness (1/distance)
         self.visited = set()  # Các thành phố đã thăm
     
     def reset(self):
         """Reset trạng thái của kiến"""
         self.tour = []
         self.distance = float('inf')
+        self.fitness = 0.0
         self.visited = set()
     
     def visit_city(self, city):
@@ -126,16 +134,13 @@ class AntColonyOptimization:
     
     def _construct_solution(self, ant):
        
-        # Reset trạng thái kiến
         ant.reset()
         
-        # Chọn thành phố bắt đầu ngẫu nhiên
         start_city = random.choice(self.city_ids)
         ant.visit_city(start_city)
         
         current_city = start_city
         
-        # Xây dựng hành trình
         while len(ant.tour) < self.num_cities:
             unvisited = ant.get_unvisited_cities(self.city_ids)
             if not unvisited:
@@ -144,24 +149,22 @@ class AntColonyOptimization:
             next_city = self._select_next_city(current_city, unvisited)
             ant.visit_city(next_city)
             current_city = next_city
-        
-        # Tính khoảng cách của hành trình
+
         ant.distance = self.tsp.calculate_route_distance(ant.tour)
+        ant.fitness = self.tsp.calculate_fitness(ant.tour)
     
     def _update_pheromone(self, all_tours, all_distances):
-       
-        # Bay hơi pheromone (evaporation)
+
         for i in self.city_ids:
             for j in self.city_ids:
                 if i != j:
                     self.pheromone[(i, j)] *= (1 - self.evaporation)
-                    # Đảm bảo pheromone không âm và có giá trị tối thiểu
+
                     if self.pheromone[(i, j)] < 0.0001:
                         self.pheromone[(i, j)] = 0.0001
-        
-        # Thêm pheromone mới từ các con kiến
+
         for tour, distance in zip(all_tours, all_distances):
-            # Lượng pheromone deposit tỷ lệ nghịch với khoảng cách
+ 
             pheromone_deposit = self.q / distance if distance > 0 else 0
             
             for i in range(len(tour)):
@@ -199,23 +202,19 @@ class AntColonyOptimization:
                 all_tours.append(ant.tour)
                 all_distances.append(ant.distance)
                 
-                # Cập nhật nghiệm tốt nhất
                 if ant.distance < self.best_distance:
                     self.best_distance = ant.distance
                     self.best_tour = ant.tour.copy()
-            
-            # Cập nhật pheromone
+
             self._update_pheromone(all_tours, all_distances)
-            
-            # Lưu lịch sử
+
             avg_distance = sum(all_distances) / len(all_distances)
             self.history.append({
                 'iteration': iteration,
                 'best_distance': self.best_distance,
                 'avg_distance': avg_distance
             })
-            
-            # Gọi callback
+
             if callback and (iteration + 1) % 10 == 0:
                 callback(self.best_tour, self.best_distance, iteration + 1)
             
@@ -224,17 +223,21 @@ class AntColonyOptimization:
                       f"Best = {self.best_distance:.2f}, Avg = {avg_distance:.2f}")
         
         self.execution_time = time.time() - start_time
+
+        best_fitness = self.tsp.calculate_fitness(self.best_tour) if self.best_tour else 0.0
         
         if verbose:
             print("=" * 60)
             print(f"KẾT QUẢ CUỐI CÙNG")
             print(f"Khoảng cách tốt nhất: {self.best_distance:.2f}")
+            print(f"Fitness tốt nhất: {best_fitness:.6f}")
             print(f"Thời gian thực thi: {self.execution_time:.3f} giây")
             print("=" * 60)
         
         return {
             'tour': self.best_tour,
             'distance': self.best_distance,
+            'fitness': best_fitness,
             'time': self.execution_time,
             'iterations': self.num_iterations,
             'history': self.history

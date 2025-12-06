@@ -1,12 +1,9 @@
-"""
-Module định nghĩa bài toán TSP (Travelling Salesman Problem)
-"""
+
 import numpy as np
 import random
 
 
 class TSProblem:
-    """Lớp đại diện cho bài toán người du lịch"""
     
     def __init__(self, num_cities=20, city_coords=None):
         # Validate num_cities
@@ -68,7 +65,7 @@ class TSProblem:
         return dist_matrix
     
     def calculate_route_distance(self, route):
-       
+      
         # Validate route
         if not route or len(route) == 0:
             raise ValueError("Tuyến đường không được rỗng")
@@ -85,6 +82,13 @@ class TSProblem:
             city2 = route[(i + 1) % len(route)]
             total_distance += self.distance_matrix[city1][city2]
         return total_distance
+    
+    def calculate_fitness(self, route):
+     
+        distance = self.calculate_route_distance(route)
+        if distance == 0:
+            return float('inf')
+        return 1.0 / distance
     
     def generate_random_route(self):
         """Tạo một tuyến đường ngẫu nhiên"""
