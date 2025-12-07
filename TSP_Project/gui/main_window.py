@@ -301,6 +301,18 @@ class MainWindow(QMainWindow):
         y = coords[:, 1]
         
         ax.scatter(x, y, c='red', s=100, zorder=2)
+        
+        # Thêm số thứ tự cho từng thành phố
+        for i in range(len(coords)):
+            ax.annotate(str(i), (x[i], y[i]), 
+                       textcoords="offset points", 
+                       xytext=(0, 8), 
+                       ha='center', 
+                       fontsize=10, 
+                       fontweight='bold',
+                       color='darkblue',
+                       bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.7, edgecolor='black'))
+        
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_title(f'Vị trí {self.tsp_problem.num_cities} thành phố')
@@ -310,7 +322,11 @@ class MainWindow(QMainWindow):
     
     def plot_tour(self, tour, title, color='blue'):
         """Vẽ hành trình"""
-        if not tour or self.tsp_problem is None:
+        if self.tsp_problem is None:
+            return
+        
+        if tour is None or len(tour) == 0:
+            self.result_text.append('⚠️ Không có tuyến đường để hiển thị')
             return
         
         self.figure_tour.clear()
@@ -319,21 +335,39 @@ class MainWindow(QMainWindow):
         coords = self.tsp_problem.get_city_coords()
         
         # Vẽ các thành phố
-        ax.scatter(coords[:, 0], coords[:, 1], c='red', s=100, zorder=2)
+        ax.scatter(coords[:, 0], coords[:, 1], c='red', s=100, zorder=2, label='Thành phố')
         
         # Vẽ hành trình
         for i in range(len(tour)):
             city1 = coords[tour[i]]
             city2 = coords[tour[(i + 1) % len(tour)]]
             ax.plot([city1[0], city2[0]], [city1[1], city2[1]], 
-                   c=color, linewidth=2, alpha=0.6, zorder=1)
+                   c=color, linewidth=2, alpha=0.7, zorder=1)
+        
+        # Đánh dấu điểm bắt đầu
+        start_city = coords[tour[0]]
+        ax.scatter(start_city[0], start_city[1], c='yellow', s=200, marker='*', 
+                  edgecolors='black', linewidths=2, zorder=3, label='Điểm bắt đầu')
+        
+        # Thêm số thứ tự cho từng thành phố
+        for i in range(len(coords)):
+            ax.annotate(str(i), (coords[i, 0], coords[i, 1]), 
+                       textcoords="offset points", 
+                       xytext=(0, 8), 
+                       ha='center', 
+                       fontsize=9, 
+                       fontweight='bold',
+                       color='darkblue',
+                       bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.8, edgecolor='black'))
         
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_title(title)
+        ax.legend()
         ax.grid(True, alpha=0.3)
         
         self.canvas_tour.draw()
+        self.tabs.setCurrentIndex(0)  # Chuyển sang tab Hành trình
     
     def plot_convergence(self, history, algorithm_name):
         """Vẽ đồ thị hội tụ"""
@@ -416,6 +450,11 @@ class MainWindow(QMainWindow):
         self.result_text.append(f'  Fitness: {result.get("fitness", 0):.6f}')
         self.result_text.append(f'  Thời gian: {result["time"]:.3f} giây')
         
+        # Hiển thị tuyến đường tốt nhất
+        if result['tour']:
+            tour_str = ' → '.join(map(str, result['tour']))
+            self.result_text.append(f'  Tuyến đường: {tour_str}')
+        
         # Vẽ hành trình
         color = 'blue' if algorithm == 'Hill Climbing' else 'green'
         self.plot_tour(result['tour'], 
@@ -474,10 +513,17 @@ class MainWindow(QMainWindow):
         self.result_text.append(f'  Khoảng cách: {analysis["hill_climbing"]["distance"]:.2f}')
         self.result_text.append(f'  Fitness: {analysis["hill_climbing"]["fitness"]:.6f}')
         self.result_text.append(f'  Thời gian: {analysis["hill_climbing"]["time"]:.3f} giây')
+        if self.results['Hill Climbing']['tour']:
+            hc_tour_str = ' → '.join(map(str, self.results['Hill Climbing']['tour']))
+            self.result_text.append(f'  Tuyến đường: {hc_tour_str}')
+        
         self.result_text.append(f'\nACO:')
         self.result_text.append(f'  Khoảng cách: {analysis["aco"]["distance"]:.2f}')
         self.result_text.append(f'  Fitness: {analysis["aco"]["fitness"]:.6f}')
         self.result_text.append(f'  Thời gian: {analysis["aco"]["time"]:.3f} giây')
+        if self.results['ACO']['tour']:
+            aco_tour_str = ' → '.join(map(str, self.results['ACO']['tour']))
+            self.result_text.append(f'  Tuyến đường: {aco_tour_str}')
         
         # Hiển thị phân tích
         self.result_text.append('\n--- PHÂN TÍCH ---')
