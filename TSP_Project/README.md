@@ -70,8 +70,6 @@ python comparison.py -n 30 --hc_iterations 5000 --aco_ants 30 --save
 python demo_comparison.py
 ```
 
-Xem chi tiết: [COMPARISON_README.md](COMPARISON_README.md)
-
 ## Hướng dẫn sử dụng
 
 ### 1. Tạo dữ liệu
